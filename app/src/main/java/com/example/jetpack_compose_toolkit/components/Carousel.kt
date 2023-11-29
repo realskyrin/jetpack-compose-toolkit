@@ -1,3 +1,6 @@
+import android.util.Log
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.TweenSpec
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -9,10 +12,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,8 +23,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.min
 
 data class CardInfo(val id: Int, val title: String, val color: Color)
 
@@ -43,21 +46,30 @@ fun Carousel(
     radius: Dp = 250.dp, // Radius for the carousel
     onClick: (card: CardInfo) -> Unit = {},
 ) {
-    var offset by remember { mutableStateOf(0f) }
-    // var lastCenterOffset by remember { mutableFloatStateOf(0f) }
+    val offset = remember { Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            // .background(Color(0xFFf3e8e6))
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDrag = { _, dragAmount ->
-                        offset -= dragAmount.x / 100
+                        coroutineScope.launch {
+                            offset.snapTo(offset.value - dragAmount.x / 100)
+                        }
                     },
                     onDragEnd = {
-                        // TODO: 当拖动结束时，将 offset 设置为上一次卡片经过组件中心位置时的 offset 值
-                        // offset = lastCenterOffset
+                        coroutineScope.launch {
+                            // 计算最近的卡片
+                            val nearestCardAngle = findNearestCardAngle(offset.value, cards.size)
+                            // 平滑过渡到最近的卡片
+//                            offset.animateTo(
+//                                targetValue = nearestCardAngle,
+//                                animationSpec = TweenSpec(durationMillis = 500)
+//                            )
+                            offset.snapTo(nearestCardAngle)
+                        }
                     },
                 )
             }
@@ -85,7 +97,7 @@ fun Carousel(
              *
              * 所以，这里的“卡片角度”实际上是指卡片在轮播中的位置，用角度来表示。
              */
-            val angle = (2 * PI / cards.size) * offsetIndex - PI / 2 + offset
+            val angle = (2 * PI / cards.size) * offsetIndex - PI / 2 + offset.value
 
             /**
              * 在这段代码中，cos(angle) 是用来获取卡片相对于轮播中心的水平偏移量的。
@@ -121,21 +133,16 @@ fun Carousel(
              */
             val scale = lerp(0.6f, 1f, (cos(adjustedAngle) + 1) / 2)
 
-            // TODO: 当任意卡片经过组件中心位置时，记录这时的 offset 值，然后在拖动结束时，将 offset 设置为这个值
-            // if (scale > 0.999 && abs(adjustedAngle) < PI / 2) {
-            //     lastCenterOffset = offset
-            // }
-
             Card(
                 modifier = Modifier
                     .size(200.dp, 150.dp)
                     .graphicsLayer(
                         translationX = x.toFloat(),
-                        scaleX = scale.toFloat(),
-                        scaleY = scale.toFloat(),
+                        scaleX = scale,
+                        scaleY = scale,
                     )
                     .align(Alignment.Center)
-                    .zIndex(scale.toFloat())
+                    .zIndex(scale)
                     .clip(RoundedCornerShape(16.dp))
                     .clickable { onClick(card) },
                 colors = CardDefaults.cardColors(
@@ -148,5 +155,29 @@ fun Carousel(
     }
 }
 
-fun lerp(start: Float, stop: Float, fraction: Double): Double =
-    (1 - fraction) * start + fraction * stop
+// 计算最接近当前偏移量的卡片角度
+fun findNearestCardAngle(currentOffset: Float, cardCount: Int): Float {
+    val normalizedOffset =
+        ((currentOffset % (2 * PI)).toFloat() + (2 * PI).toFloat()) % (2 * PI).toFloat()
+    val singleCardAngle = (2 * PI / cardCount).toFloat()
+    var nearestCardAngle = 0f
+    var minDifference = Float.MAX_VALUE
+
+    for (i in 0 until cardCount) {
+        val targetAngle = i * singleCardAngle
+        var difference = kotlin.math.abs(targetAngle - normalizedOffset)
+
+        // 考虑循环轮播的情况，比如从最后一张卡片平滑过渡到第一张卡片
+        difference = min(difference, (2 * PI).toFloat() - difference)
+
+        if (difference < minDifference) {
+            minDifference = difference
+            nearestCardAngle = targetAngle
+        }
+    }
+
+    return nearestCardAngle
+}
+
+fun lerp(start: Float, stop: Float, fraction: Double): Float =
+    (1 - fraction.toFloat()) * start + fraction.toFloat() * stop
