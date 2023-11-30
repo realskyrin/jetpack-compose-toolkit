@@ -1,6 +1,4 @@
-import android.util.Log
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -12,8 +10,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,8 +23,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import kotlinx.coroutines.launch
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
 
@@ -38,16 +38,12 @@ data class CardInfo(val id: Int, val title: String, val color: Color)
 @Composable
 fun Carousel(
     modifier: Modifier = Modifier,
-    cards: List<CardInfo> = listOf(
-        CardInfo(1, "Card 1", Color.Red),
-        CardInfo(2, "Card 2", Color.Green),
-        CardInfo(3, "Card 3", Color.Blue),
-    ),
+    cards: List<CardInfo>,
     radius: Dp = 250.dp, // Radius for the carousel
     onClick: (card: CardInfo) -> Unit = {},
 ) {
-    val offset = remember { Animatable(0f) }
-    val coroutineScope = rememberCoroutineScope()
+    var offset by remember { mutableFloatStateOf(0f) }
+    val animatedOffset = animateFloatAsState(targetValue = offset, label = "offset animation")
 
     Box(
         modifier = modifier
@@ -55,21 +51,11 @@ fun Carousel(
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDrag = { _, dragAmount ->
-                        coroutineScope.launch {
-                            offset.snapTo(offset.value - dragAmount.x / 100)
-                        }
+                        offset -= dragAmount.x / 100
                     },
                     onDragEnd = {
-                        coroutineScope.launch {
-                            // 计算最近的卡片
-                            val nearestCardAngle = findNearestCardAngle(offset.value, cards.size)
-                            // 平滑过渡到最近的卡片
-//                            offset.animateTo(
-//                                targetValue = nearestCardAngle,
-//                                animationSpec = TweenSpec(durationMillis = 500)
-//                            )
-                            offset.snapTo(nearestCardAngle)
-                        }
+                        val nearestCardAngle = findNearestCardAngle(offset, cards.size)
+                        offset = nearestCardAngle
                     },
                 )
             }
@@ -97,7 +83,7 @@ fun Carousel(
              *
              * 所以，这里的“卡片角度”实际上是指卡片在轮播中的位置，用角度来表示。
              */
-            val angle = (2 * PI / cards.size) * offsetIndex - PI / 2 + offset.value
+            val angle = (2 * PI / cards.size) * offsetIndex - PI / 2 + animatedOffset.value
 
             /**
              * 在这段代码中，cos(angle) 是用来获取卡片相对于轮播中心的水平偏移量的。
@@ -157,6 +143,7 @@ fun Carousel(
 
 // 计算最接近当前偏移量的卡片角度
 fun findNearestCardAngle(currentOffset: Float, cardCount: Int): Float {
+    // 将当前偏移量标准化到 [0, 2*PI) 范围内
     val normalizedOffset =
         ((currentOffset % (2 * PI)).toFloat() + (2 * PI).toFloat()) % (2 * PI).toFloat()
     val singleCardAngle = (2 * PI / cardCount).toFloat()
@@ -165,7 +152,7 @@ fun findNearestCardAngle(currentOffset: Float, cardCount: Int): Float {
 
     for (i in 0 until cardCount) {
         val targetAngle = i * singleCardAngle
-        var difference = kotlin.math.abs(targetAngle - normalizedOffset)
+        var difference = abs(targetAngle - normalizedOffset)
 
         // 考虑循环轮播的情况，比如从最后一张卡片平滑过渡到第一张卡片
         difference = min(difference, (2 * PI).toFloat() - difference)
@@ -174,6 +161,14 @@ fun findNearestCardAngle(currentOffset: Float, cardCount: Int): Float {
             minDifference = difference
             nearestCardAngle = targetAngle
         }
+    }
+
+    // 调整 nearestCardAngle 以使其尽可能接近当前 offset
+    // 如果 nearestCardAngle 是 0，且卡片在轮播中靠左，那么就需要将 nearestCardAngle 调整为 2*PI
+    nearestCardAngle += if (nearestCardAngle == 0f && normalizedOffset > 1) {
+        (currentOffset - normalizedOffset) + (2 * PI).toFloat()
+    } else {
+        (currentOffset - normalizedOffset)
     }
 
     return nearestCardAngle
