@@ -101,7 +101,7 @@ fun Sample1() {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Cyan),
+                            .background(Color.Red),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(text = card)
@@ -118,7 +118,7 @@ fun Sample2() {
     val cards = listOf(
         "Card 1",
         "Card 2",
-        "Card 3"
+        "Card 3",
     )
 
     CardCarousel(
@@ -158,7 +158,7 @@ fun Sample2() {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Cyan),
+                            .background(Color.Red),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(text = card)

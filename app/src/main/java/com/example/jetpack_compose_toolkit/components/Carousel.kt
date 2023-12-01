@@ -19,6 +19,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import timber.log.Timber
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -115,7 +116,7 @@ private fun findNearestCardAngle(currentOffset: Float, cardCount: Int): Float {
         }
     }
 
-    nearestCardAngle += if (nearestCardAngle == 0f && normalizedOffset > 1) {
+    nearestCardAngle += if (nearestCardAngle == 0f && normalizedOffset > 1.05) {
         (currentOffset - normalizedOffset) + (2 * PI).toFloat()
     } else {
         (currentOffset - normalizedOffset)
