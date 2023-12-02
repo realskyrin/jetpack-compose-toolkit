@@ -76,8 +76,7 @@ fun <T> CardCarousel(
             }
     ) {
         cards.forEachIndexed { index, card ->
-            val offsetIndex = if (cards.size % 2 == 1) index + 0.5 else index.toDouble()
-            val angle = (2 * PI / cards.size) * offsetIndex - PI / 2 + animatedOffset.value
+            val angle = (2 * PI / cards.size) * index + PI / 2 + animatedOffset.value
             val x = cos(angle) * radius.value
             val adjustedAngle = (angle + PI / 2) % (2 * PI) - PI
             val scale = lerp(minScale, maxScale, (cos(adjustedAngle) + 1) / 2)
