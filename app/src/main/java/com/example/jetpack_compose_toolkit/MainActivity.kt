@@ -4,6 +4,7 @@ import CardCarousel
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,8 @@ class MainActivity : ComponentActivity() {
                         Sample1()
                         Spacer(modifier = Modifier.padding(16.dp))
                         Sample2()
+                        Spacer(modifier = Modifier.padding(16.dp))
+                        Sample3()
                     }
                 }
             }
@@ -164,6 +167,38 @@ fun Sample2() {
                         Text(text = card)
                     }
                 }
+            }
+        }
+    )
+}
+@Composable
+fun Sample3() {
+    val ctx = LocalContext.current
+    val cards = listOf(
+        "Card 1",
+        "Card 2",
+        "Card 3",
+    )
+
+    CardCarousel(
+        modifier = Modifier
+            .wrapContentHeight()
+            .fillMaxWidth(),
+        cards = cards,
+        elevation = 8.dp,
+        sensitivity = 5f,
+        border = BorderStroke(2.dp,Color.Black),
+        onClick = { card ->
+            ctx.showToast("Clicked on $card")
+        },
+        cardContent = { card ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Yellow),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = card)
             }
         }
     )

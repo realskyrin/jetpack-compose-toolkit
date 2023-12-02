@@ -1,4 +1,5 @@
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -7,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -19,7 +21,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import timber.log.Timber
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -34,9 +35,11 @@ import kotlin.math.min
  * @param cardWith The width of the cards.
  * @param cardHeight The height of the cards.
  * @param elevation The elevation of the cards.
+ * @param cornerRadius The cornerRadius of the cards.
  * @param sensitivity The sensitivity of the drag gesture.
  * @param maxScale The maximum scale of the cards.
  * @param minScale The minimum scale of the cards.
+ * @param border The border of the cards.
  * @param onClick The callback to be invoked when a card is clicked.
  * @param cardContent The content of the card.
  */
@@ -48,9 +51,11 @@ fun <T> CardCarousel(
     cardWith: Dp = 200.dp,
     cardHeight: Dp = 150.dp,
     elevation: Dp = 4.dp,
+    cornerRadius: Dp = 16.dp,
     sensitivity: Float = 1f,
     maxScale: Float = 1f,
     minScale: Float = 0.6f,
+    border: BorderStroke? = null,
     onClick: (card: T) -> Unit = {},
     cardContent: @Composable (card: T) -> Unit,
 ) {
@@ -88,9 +93,11 @@ fun <T> CardCarousel(
                     )
                     .align(Alignment.Center)
                     .zIndex(scale)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(cornerRadius))
                     .clickable { onClick(card) },
                 elevation = CardDefaults.cardElevation(elevation),
+                shape = RoundedCornerShape(cornerRadius),
+                border = border,
             ) {
                 cardContent(card)
             }
